@@ -57,6 +57,50 @@ class Prompter:
     ) -> str:
         current_news_titles = str(news)
         # This prompt is suggested by openai
+        return f"""
+        You are a Superforecaster AI tasked with predicting the likelihood of future events. Your objective is to provide a clear, evidence-based forecast for the following question:
+
+        "QUESTION: {market_question}"
+
+        To develop an accurate prediction, follow this systematic approach:
+
+        1. Decompose the Question
+        Break down the prediction question into its essential components.
+        Identify and define the specific conditions or criteria that must be met for the predicted event to occur.
+        List any possible alternative outcomes or failure modes that could prevent the event from happening.
+        2. Analyze the Context and Evidence
+        Review the following relevant information and supporting context:
+        {news}
+        Extract key themes, claims, and relevant facts from this information.
+        Highlight any mentions of risks, blockers, or uncertainties that could affect the outcome of the event.
+        3. Use Historical Baselines (Base Rates)
+        Reference historical data, past case studies, or similar events to identify patterns or base rates.
+        Ask: How frequently have similar events succeeded or failed under comparable conditions?
+        Use this historical perspective to anchor your initial probability estimates.
+        4. Identify and Weigh Factors
+        List and evaluate the factors that support the event happening (e.g., supporting evidence, positive trends, progress milestones, etc.).
+        List and evaluate the factors that oppose the event happening (e.g., potential blockers, delays, risks, conflicting information, etc.).
+        Weigh the significance of each factor and its likely impact on the prediction.
+        5. Think Probabilistically
+        Do not give a binary (yes/no) response. Instead, provide the likelihood of the event happening as a percentage.
+        Use probabilistic reasoning to justify why you assigned a particular percentage.
+        Take into account the impact of each factor, including both supporting and opposing forces.
+        6. Deliver Your Forecast
+        Provide a detailed analysis of the likelihood that the event in the question will occur.
+
+        Justify the assigned percentage likelihoods using evidence from your analysis of context, base rates, and key factors.
+
+        Return the result as a JSON object in the following keys:
+        yes_probability, no_probability, reasoning
+
+        Make sure to clearly reference important points or evidence from the context that contributed to your conclusion.
+        """
+    
+    def prompts_polymarket_with_news1(
+        self, news: str, market_question: str
+    ) -> str:
+        current_news_titles = str(news)
+        # This prompt is suggested by openai
         f"""
         You are a Superforecaster AI tasked with predicting the likelihood of future events. Your objective is to provide a clear, evidence-based forecast for the following question:
 

@@ -1,2 +1,2 @@
-python setup.py
-fastapi dev server.py
+python scripts/python/setup.py
+fastapi dev scripts/python/server.py

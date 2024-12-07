@@ -74,7 +74,7 @@ class Executor:
         return result.content
     
     def process_news_data_chunk(self, news: str, user_input: str) -> str:
-        print(self.prompter.prompts_polymarket_with_news(news=news, market_question=user_input))
+        # print(self.prompter.prompts_polymarket_with_news(news=news, market_question=user_input))
         system_message = SystemMessage(
             content=str(self.prompter.prompts_polymarket_with_news(news=news, market_question=user_input))
         )
@@ -139,7 +139,6 @@ class Executor:
     
     def get_polymarket_news_llm(self, user_input: str, news) -> str:
         context = "\n\n".join([doc.page_content for doc in news])
-        print(context)
         combined_data = str(self.prompter.prompts_polymarket_with_news(news=context, market_question=user_input))
         
         # Estimate total tokens
@@ -149,7 +148,8 @@ class Executor:
         token_limit = self.token_limit
         if total_tokens <= token_limit:
             # If within limit, process normally
-            return self.process_news_data_chunk(context, user_input)
+            result = self.process_news_data_chunk(context, user_input)
+            return self.clean_and_parse_json(result)
         else:
             print(f'total tokens {total_tokens} exceeding llm capacity, now will split and answer')
             group_size = (total_tokens // token_limit) + 1
@@ -159,10 +159,9 @@ class Executor:
 
             for cut_data in cut_1:
                 result = self.process_news_data_chunk(cut_data, user_input)
-                results.append(result)
+                results.append(self.clean_and_parse_json(result))
             
-            combined_result = " ".join(results)
-            return combined_result
+            return results
 
     def filter_events_with_rag(self, events: "list[SimpleEvent]") -> str:
         prompt = self.prompter.filter_events()
@@ -233,3 +232,31 @@ class Executor:
         result = self.llm.invoke(prompt)
         content = result.content
         return content
+    
+    def clean_and_parse_json(self, response: str):
+        try:
+            # Step 1: Extract JSON using regex (find first { ... } block)
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            
+            if not json_match:
+                raise ValueError("No valid JSON found in the response")
+            
+            # Step 2: Clean up any bad characters
+            json_str = json_match.group(0)
+            json_str = re.sub(r"‘|’|“|”", '"', json_str)  # Replace curly quotes with standard double quotes
+            json_str = re.sub(r"\s+", " ", json_str)  # Remove excess whitespace/newlines
+            json_str = re.sub(r',\s*}', '}', json_str)  # Remove trailing commas before closing braces
+            json_str = re.sub(r',\s*]', ']', json_str)  # Remove trailing commas before closing brackets
+
+            # Step 3: Parse the JSON
+            parsed_data = json.loads(json_str)
+            return parsed_data
+
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Cleaned JSON string: {json_str}")
+            return None
+
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return None
