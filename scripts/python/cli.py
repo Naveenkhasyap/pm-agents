@@ -7,11 +7,13 @@ from agents.connectors.news import News
 from agents.application.trade import Trader
 from agents.application.executor import Executor
 from agents.application.creator import Creator
+from agents.connectors.google_feeds import GoogleNews
 
 app = typer.Typer()
 polymarket = Polymarket()
 newsapi_client = News()
 polymarket_rag = PolymarketRAG()
+gn = GoogleNews()
 
 
 @app.command()
@@ -123,6 +125,15 @@ def run_autonomous_trader() -> None:
     trader = Trader()
     trader.one_best_trade()
 
+@app.command()
+def fetch_and_store_news(question: str) -> None:
+    print(question)
+    documents = gn.fetch_search_documents(question)
+    pprint(documents)
+    # polymarket_rag.load_documents(documents)
+    executor = Executor()
+    response = executor.get_polymarket_news_llm(question, documents)
+    pprint(response)
 
 if __name__ == "__main__":
     app()

@@ -29,7 +29,7 @@ def retain_keys(data, keys_to_retain):
         return data
 
 class Executor:
-    def __init__(self, default_model='gpt-3.5-turbo-16k') -> None:
+    def __init__(self, default_model='gpt-4-1106-preview') -> None:
         load_dotenv()
         max_token_model = {'gpt-3.5-turbo-16k':15000, 'gpt-4-1106-preview':95000}
         self.token_limit = max_token_model.get(default_model)
@@ -67,6 +67,16 @@ class Executor:
     def process_data_chunk(self, data1: List[Dict[Any, Any]], data2: List[Dict[Any, Any]], user_input: str) -> str:
         system_message = SystemMessage(
             content=str(self.prompter.prompts_polymarket(data1=data1, data2=data2))
+        )
+        human_message = HumanMessage(content=user_input)
+        messages = [system_message, human_message]
+        result = self.llm.invoke(messages)
+        return result.content
+    
+    def process_news_data_chunk(self, news: str, user_input: str) -> str:
+        print(self.prompter.prompts_polymarket_with_news(news=news, market_question=user_input))
+        system_message = SystemMessage(
+            content=str(self.prompter.prompts_polymarket_with_news(news=news, market_question=user_input))
         )
         human_message = HumanMessage(content=user_input)
         messages = [system_message, human_message]
@@ -126,6 +136,33 @@ class Executor:
         prompt = self.prompter.filter_events(events)
         result = self.llm.invoke(prompt)
         return result.content
+    
+    def get_polymarket_news_llm(self, user_input: str, news) -> str:
+        context = "\n\n".join([doc.page_content for doc in news])
+        print(context)
+        combined_data = str(self.prompter.prompts_polymarket_with_news(news=context, market_question=user_input))
+        
+        # Estimate total tokens
+        total_tokens = self.estimate_tokens(combined_data)
+        
+        # Set a token limit (adjust as needed, leaving room for system and user messages)
+        token_limit = self.token_limit
+        if total_tokens <= token_limit:
+            # If within limit, process normally
+            return self.process_news_data_chunk(context, user_input)
+        else:
+            print(f'total tokens {total_tokens} exceeding llm capacity, now will split and answer')
+            group_size = (total_tokens // token_limit) + 1
+            cut_1 = self.divide_list(news, group_size)
+
+            results = []
+
+            for cut_data in cut_1:
+                result = self.process_news_data_chunk(cut_data, user_input)
+                results.append(result)
+            
+            combined_result = " ".join(results)
+            return combined_result
 
     def filter_events_with_rag(self, events: "list[SimpleEvent]") -> str:
         prompt = self.prompter.filter_events()
