@@ -75,7 +75,7 @@ class Polymarket:
         )
         self.credentials = self.client.create_or_derive_api_creds()
         self.client.set_api_creds(self.credentials)
-        # print(self.credentials)
+        print(self.credentials)
 
     def _init_approvals(self, run: bool = False) -> None:
         if not run:
@@ -185,6 +185,7 @@ class Polymarket:
             send_ctf_approval_tx, 600
         )
         print(ctf_approval_tx_receipt)
+        print("DONE!!!")
 
     def get_all_markets(self) -> "list[SimpleMarket]":
         markets = []
@@ -340,6 +341,18 @@ class Polymarket:
 
     def execute_market_order(self, market, amount) -> str:
         token_id = ast.literal_eval(market[0].dict()["metadata"]["clob_token_ids"])[1]
+        order_args = MarketOrderArgs(
+            token_id=token_id,
+            amount=amount,
+        )
+        signed_order = self.client.create_market_order(order_args)
+        print("Execute market order... signed_order ", signed_order)
+        resp = self.client.post_order(signed_order, orderType=OrderType.FOK)
+        print(resp)
+        print("Done!")
+        return resp
+    
+    def execute_market_order_token(self, token_id, amount) -> str:
         order_args = MarketOrderArgs(
             token_id=token_id,
             amount=amount,
